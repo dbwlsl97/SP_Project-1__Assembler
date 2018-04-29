@@ -43,7 +43,7 @@ int main(int args, char *arg[])
 	}
 //	make_opcode_output("output_20160273.txt");
 //	make_opcode_output(NULL);
-	make_symtab_output("symtab_20160273.txt");
+//	make_symtab_output("symtab_20160273.txt");
 //	assem_pass2();
 //	make_objectcode_output("output_20160273");
 
@@ -374,6 +374,7 @@ static int assem_pass1(void)
 	for (int i = 0; i < line_num; i++) { //line_num (전체 input.txt) 길이 만큼 토큰파싱하기
 		token_parsing(input_data[i]);
 	}
+	make_symtab_output("sym_tab20160273.txt");
 
 	return 0;
 }
@@ -449,9 +450,10 @@ void make_opcode_output(char *file_name)
 void make_symtab_output(char *file_name) {
 	FILE *file;
 	if (file_name == NULL)
-		file = stdout;
+		return -1;
 	else {
-		//			file = fopen(file_name, "w");
+		file = fopen(file_name, "w");
+		printf("%s 파일이 생성되었습니다.\n", file_name);
 	}
 	int op = 0;
 	char *bufT = NULL; //버퍼 끝
@@ -461,6 +463,7 @@ void make_symtab_output(char *file_name) {
 		sym_table[i].addr = locctr;
 		save = i;
 		if (!strcmp(token_table[i]->operator,"START")) {
+			strcpy(sym_table[i].symbol, token_table[i]->label);
 			continue;
 		}
 		else if (!strcmp(token_table[i]->operator,"END")) {
@@ -574,9 +577,12 @@ void make_symtab_output(char *file_name) {
 		if (!strcmp(lit_table[i].literal, token_table[i]->operand[0]) && (lit_table[i].addr == 0)) {
 			lit_table[i].addr = save;
 		}
-
+		if (strcmp(sym_table[i].symbol, "\0")) {
+			fprintf(file, "%s\t\t\t\t%X\n", sym_table[i].symbol, sym_table[i].addr);
+		}
 	}
 }
+//(strcmp(sym_table[i].symbol, "\0"))
 /* ----------------------------------------------------------------------------------
 * 설명 : 어셈블리 코드를 기계어 코드로 바꾸기 위한 패스2 과정을 수행하는 함수이다.
 *		   패스 2에서는 프로그램을 기계어로 바꾸는 작업은 라인 단위로 수행된다.
