@@ -57,11 +57,16 @@ struct symbol_unit {
 	char symbol[10];
 	int addr;
 };
-
 typedef struct symbol_unit symbol;
 symbol sym_table[MAX_LINES];
-
 static int locctr;
+
+struct literal_unit{
+	char literal[10];
+	int addr;
+};
+typedef struct literal_unit literal;
+literal lit_table[MAX_LINES];
 //--------------
 
 static char *input_file;
