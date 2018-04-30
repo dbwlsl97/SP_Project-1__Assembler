@@ -43,7 +43,7 @@ int main(int args, char *arg[])
 	}
 //	make_opcode_output("output_20160273.txt");
 //	make_opcode_output(NULL);
-//	make_symtab_output("symtab_20160273.txt");
+	make_symtab_output("symtab_20160273.txt");
 //	assem_pass2();
 //	make_objectcode_output("output_20160273");
 
@@ -374,10 +374,147 @@ static int assem_pass1(void)
 	for (int i = 0; i < line_num; i++) { //line_num (전체 input.txt) 길이 만큼 토큰파싱하기
 		token_parsing(input_data[i]);
 	}
-	make_symtab_output("sym_tab20160273.txt");
+	int op = 0;
+	char *bufT = NULL; //버퍼 끝
+	char *bufH = NULL; //버퍼 시작
+	int save = 0;
+	for (int i = 0; i < token_line; i++) {
+		token_table[i]->addr = locctr;
+		if (!strcmp(token_table[i]->operator,"START")) {
+			strcpy(sym_table[i].symbol, token_table[i]->label);
+			continue;
+		}
+		else if (!strcmp(token_table[i]->operator,"END")) {
+			for (int j = 0; j < i; j++) {
+				if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
+					save = locctr;
+				}
+			}
+			token_table[i]->addr = 0; 
+			continue;
+		}
+		else if (strstr(token_table[i]->operator,"EXT") || (!strcmp(token_table[i]->label, "."))) {
+			continue;
+		}
+		op = search_opcode(token_table[i]->operator);
+		if (op >= 0) {
+			token_table[i]->addr = locctr;
+			if (strstr(inst_table[op]->format, "1")) {
+				locctr += 1;
+			}
+			else if (strstr(inst_table[op]->format, "2")) {
+				locctr += 2;
+			}
+			else if (!strcmp(inst_table[op]->format, "3/4")) {
+				if (strchr(token_table[i]->operator,'+')) {
+					locctr += 4;
+				}
+				else {
+					locctr += 3;
+				}
+			}
+			if (!strcmp(token_table[i]->label, "")) {
+				strcpy(sym_table[i].symbol, "\0");
+			}
+			else {
+				strcpy(sym_table[i].symbol, token_table[i]->label);
+				sym_table[i].addr = token_table[i]->addr;
+			}
+		}
+		else {
+			token_table[i]->addr = locctr;
+			if (!strcmp(token_table[i]->operator,"RESW")) {
+				locctr += atoi(token_table[i]->operand[0]) * 3;
+			}
+			else if (!strcmp(token_table[i]->operator,"RESB")) {
+				locctr += atoi(token_table[i]->operand[0]);
+			}
+			else if (!strcmp(token_table[i]->operator,"CSECT")) {
+				for (int j = 0; j < i; j++) {
+					if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
+						save = locctr;
+					}
+				}
+				locctr = 0;
+				token_table[i]->addr = locctr;
+			}
+			else if (!strcmp(token_table[i]->operator,"BYTE")) {
+				locctr += 1;
+			}
+			else if (!strcmp(token_table[i]->operator,"WORD") || (!strcmp(token_table[i]->operator,"LTORG"))) {
+				locctr += 3;
+			}
+			if (!strcmp(token_table[i]->label, "")) {
+				strcpy(sym_table[i].symbol, "\0");
+			}
+			else {
+				strcpy(sym_table[i].symbol, token_table[i]->label);
+				sym_table[i].addr = token_table[i]->addr;
+			}
+			if (!strcmp(token_table[i]->operator,"EQU")) {
+				if (strstr(token_table[i]->operand[0], "-")) {
+					int loc1 = 0;
+					int loc2 = 0;
+					bufT = strtok(token_table[i]->operand[0], "-");
+					bufH = strtok(NULL, "-");
+					strcpy(token_table[i]->operand[0], bufT);
+					strcpy(token_table[i]->operand[1], bufH);
+					for (int j = 0; j < token_line; j++) {
+						if (!strcmp(token_table[i]->operand[0], sym_table[j].symbol)) {
+							loc1 = sym_table[j].addr;
+						}
+						if (!strcmp(token_table[i]->operand[1], sym_table[j].symbol)) {
+							loc2 = sym_table[j].addr;
+						}
+					}
+					locctr = loc1 - loc2;
+					token_table[i]->addr = locctr;
+				}
+			}
+		}
+		if (!strcmp(token_table[i]->operator, "LTORG")) {
+			for (int j = 0; j < i; j++) {
+				if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
+					lit_table[j].addr = token_table[i]->addr;
+				}
+			}
+		}
+	}
+	for (int i = 0; i < token_line; i++) {
+		if (!strcmp(lit_table[i].literal, token_table[i]->operand[0]) && (lit_table[i].addr == 0)) {
+			int j = i;
+			for (; (token_table[j]->addr != 0); j++) {
+				lit_table[i].addr = save;
+			}
+		}
+
+	}
 
 	return 0;
 }
+
+//char *temp = NULL;
+//char *temp2 = NULL;
+//char *tokenlit = NULL;
+//		if (!strcmp(token_table[i]->operand[0], lit_table[i].literal)) {
+//			for (int j = i; sym_table[j].addr != 0; j++) {
+////			for (int j = 0; j < token_line; j++) {
+//				if (!strcmp(token_table[j]->operator, "LTORG")) {
+//					lit_table[i].addr = sym_table[j].addr;
+//				}
+//				else {
+//					lit_table[j].addr = sym_table[j].addr;
+//					//sym_table[i].addr;
+//				}
+//				//if (lit_table[j].literal != "\0") {
+//				//	//strcpy(tokenlit, lit_table[j].literal);
+//				//	//temp = strtok(tokenlit, "'");   -----> 나누기 생각 끄적여본것
+//				//	//temp2 = strtok(NULL, "'");
+//				//	
+//				//}
+//			}
+//		}
+
 
 /* ----------------------------------------------------------------------------------
 * 설명 : 입력된 문자열의 이름을 가진 파일에 프로그램의 결과를 저장하는 함수이다.
@@ -455,132 +592,12 @@ void make_symtab_output(char *file_name) {
 		file = fopen(file_name, "w");
 		printf("%s 파일이 생성되었습니다.\n", file_name);
 	}
-	int op = 0;
-	char *bufT = NULL; //버퍼 끝
-	char *bufH = NULL; //버퍼 시작
-	int save = 0;
 	for (int i = 0; i < token_line; i++) {
-		sym_table[i].addr = locctr;
-		save = i;
-		if (!strcmp(token_table[i]->operator,"START")) {
-			strcpy(sym_table[i].symbol, token_table[i]->label);
-			continue;
-		}
-		else if (!strcmp(token_table[i]->operator,"END")) {
-			save = sym_table[i].addr;
-			sym_table[i].addr = NULL;
-			continue;
-		}
-		else if (strstr(token_table[i]->operator,"EXT")) {
-			continue;
-		}
-		else if (!strcmp(token_table[i]->label, ".")) {
-			continue;
-		}
-		op = search_opcode(token_table[i]->operator);
-		if (op >= 0) {
-			sym_table[i].addr = locctr;
-			if (strstr(inst_table[op]->format, "2")) {
-				locctr += 2;
-			}
-			else if (!strcmp(inst_table[op]->format, "3/4")) {
-				if (strchr(token_table[i]->operator,'+')) {
-					locctr += 4;
-				}
-				else {
-					locctr += 3;
-				}
-			}
-			if (!strcmp(token_table[i]->label, "")) {
-				strcpy(sym_table[i].symbol, "\0");
-			}
-			else {
-				strcpy(sym_table[i].symbol, token_table[i]->label);
-			}
-		}
-		else {
-			sym_table[i].addr = locctr;
-			if (!strcmp(token_table[i]->operator,"RESW")) {
-				locctr += atoi(token_table[i]->operand[0]) * 3;
-			}
-			else if (!strcmp(token_table[i]->operator,"RESB")) {
-				locctr += atoi(token_table[i]->operand[0]);
-			}
-			else if (!strcmp(token_table[i]->operator,"CSECT")) {
-				locctr = 0;
-				sym_table[i].addr = locctr;
-			}
-			else if (!strcmp(token_table[i]->operator,"BYTE")) {
-				locctr += 1;
-			}
-			else if (!strcmp(token_table[i]->operator,"WORD") || (!strcmp(token_table[i]->operator,"LTORG"))) {
-				locctr += 3;
-			}
-			if (!strcmp(token_table[i]->label, "")) {
-				strcpy(sym_table[i].symbol, "\0");
-			}
-			else {
-				strcpy(sym_table[i].symbol, token_table[i]->label);
-			}
-			if (!strcmp(token_table[i]->operator,"EQU")) {
-
-				if (strstr(token_table[i]->operand[0], "-")) {
-					int loc1 = 0;
-					int loc2 = 0;
-					bufT = strtok(token_table[i]->operand[0], "-");
-					bufH = strtok(NULL, "-");
-					strcpy(token_table[i]->operand[0], bufT);
-					strcpy(token_table[i]->operand[1], bufH);
-					for (int j = 0; j < token_line; j++) {
-						if (!strcmp(token_table[i]->operand[0], sym_table[j].symbol)) {
-							loc1 = sym_table[j].addr;
-						}
-						if (!strcmp(token_table[i]->operand[1], sym_table[j].symbol)) {
-							loc2 = sym_table[j].addr;
-						}
-					}
-					locctr = loc1 - loc2;
-					sym_table[i].addr = locctr;
-				}
-			}
-		}
-		if (!strcmp(token_table[i]->operator, "LTORG")) {
-			for (int j = 0; j < i; j++) {
-				if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
-					lit_table[j].addr = sym_table[i].addr;
-				}
-			}
-		}
-		//char *temp = NULL;
-		//char *temp2 = NULL;
-		//char *tokenlit = NULL;
-		//		if (!strcmp(token_table[i]->operand[0], lit_table[i].literal)) {
-		//			for (int j = i; sym_table[j].addr != 0; j++) {
-		////			for (int j = 0; j < token_line; j++) {
-		//				if (!strcmp(token_table[j]->operator, "LTORG")) {
-		//					lit_table[i].addr = sym_table[j].addr;
-		//				}
-		//				else {
-		//					lit_table[j].addr = sym_table[j].addr;
-		//					//sym_table[i].addr;
-		//				}
-		//				//if (lit_table[j].literal != "\0") {
-		//				//	//strcpy(tokenlit, lit_table[j].literal);
-		//				//	//temp = strtok(tokenlit, "'");   -----> 나누기 생각 끄적여본것
-		//				//	//temp2 = strtok(NULL, "'");
-		//				//	
-		//				//}
-		//			}
-		//		}
-	}
-	for (int i = 0; i < token_line; i++) {
-		if (!strcmp(lit_table[i].literal, token_table[i]->operand[0]) && (lit_table[i].addr == 0)) {
-			lit_table[i].addr = save;
-		}
 		if (strcmp(sym_table[i].symbol, "\0")) {
-			fprintf(file, "%s\t\t\t\t%X\n", sym_table[i].symbol, sym_table[i].addr);
+			fprintf(file, "%s\t\t\t%X\n", sym_table[i].symbol, sym_table[i].addr);
 		}
 	}
+	
 }
 //(strcmp(sym_table[i].symbol, "\0"))
 /* ----------------------------------------------------------------------------------

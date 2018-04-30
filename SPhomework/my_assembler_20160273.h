@@ -35,11 +35,13 @@ int label_num;
 * nixbpe는 8bit 중 하위 6개의 bit를 이용하여 n,i,x,b,p,e를 표시한다.
 */
 struct token_unit {
+	int addr;
 	char *label;
 	char *operator;
 	char *operand[MAX_OPERAND];
 	char *comment;
 	char nixbpe;
+	
 };
 
 typedef struct token_unit token;
