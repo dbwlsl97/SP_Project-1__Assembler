@@ -374,7 +374,7 @@ static int assem_pass1(void)
 	for (int i = 0; i < line_num; i++) { //line_num (전체 input.txt) 길이 만큼 토큰파싱하기
 		token_parsing(input_data[i]);
 	}
-	int op = 0;
+//	int op = 0;
 	char *bufT = NULL; //버퍼 끝
 	char *bufH = NULL; //버퍼 시작
 	int save = 0;
@@ -396,16 +396,16 @@ static int assem_pass1(void)
 		else if (strstr(token_table[i]->operator,"EXT") || (!strcmp(token_table[i]->label, "."))) {
 			continue;
 		}
-		op = search_opcode(token_table[i]->operator);
-		if (op >= 0) {
+		myopcode = search_opcode(token_table[i]->operator);
+		if (myopcode >= 0) {
 			token_table[i]->addr = locctr;
-			if (strstr(inst_table[op]->format, "1")) {
+			if (strstr(inst_table[myopcode]->format, "1")) {
 				locctr += 1;
 			}
-			else if (strstr(inst_table[op]->format, "2")) {
+			else if (strstr(inst_table[myopcode]->format, "2")) {
 				locctr += 2;
 			}
-			else if (!strcmp(inst_table[op]->format, "3/4")) {
+			else if (!strcmp(inst_table[myopcode]->format, "3/4")) {
 				if (strchr(token_table[i]->operator,'+')) {
 					locctr += 4;
 				}
@@ -461,14 +461,15 @@ static int assem_pass1(void)
 					strcpy(token_table[i]->operand[1], bufH);
 					for (int j = 0; j < token_line; j++) {
 						if (!strcmp(token_table[i]->operand[0], sym_table[j].symbol)) {
-							loc1 = sym_table[j].addr;
+							loc1 = token_table[j]->addr;
 						}
 						if (!strcmp(token_table[i]->operand[1], sym_table[j].symbol)) {
-							loc2 = sym_table[j].addr;
+							loc2 = token_table[j]->addr;
 						}
 					}
 					locctr = loc1 - loc2;
 					token_table[i]->addr = locctr;
+					sym_table[i].addr = token_table[i]->addr;
 				}
 			}
 		}
@@ -599,7 +600,6 @@ void make_symtab_output(char *file_name) {
 	}
 	
 }
-//(strcmp(sym_table[i].symbol, "\0"))
 /* ----------------------------------------------------------------------------------
 * 설명 : 어셈블리 코드를 기계어 코드로 바꾸기 위한 패스2 과정을 수행하는 함수이다.
 *		   패스 2에서는 프로그램을 기계어로 바꾸는 작업은 라인 단위로 수행된다.
@@ -610,12 +610,13 @@ void make_symtab_output(char *file_name) {
 * 주의 :
 * -----------------------------------------------------------------------------------
 */
-//static int assem_pass2(void)
-//{
-//
-//	/* add your code here */
-//
-//}
+static int assem_pass2(void)
+{
+	for (int i = 0; i < token_line; i++) {
+		myopcode = search_opcode(token_table[i]->operator);
+	}
+
+}
 
 /* ----------------------------------------------------------------------------------
 * 설명 : 입력된 문자열의 이름을 가진 파일에 프로그램의 결과를 저장하는 함수이다.

@@ -41,6 +41,7 @@ struct token_unit {
 	char *operand[MAX_OPERAND];
 	char *comment;
 	char nixbpe;
+	int obcode;
 	
 };
 
