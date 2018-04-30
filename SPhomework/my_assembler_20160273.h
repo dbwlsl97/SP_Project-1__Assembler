@@ -47,6 +47,10 @@ struct token_unit {
 	char *comment;
 	char nixbpe;
 	int obcode;
+<<<<<<< HEAD
+=======
+	
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 };
 
 typedef struct token_unit token;

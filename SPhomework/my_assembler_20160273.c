@@ -42,7 +42,12 @@ int main(int args, char *arg[])
 		return -1;
 	}
 //	make_opcode_output("output_20160273.txt");
+<<<<<<< HEAD
 //	make_symtab_output("symtab_20160273.txt");
+=======
+//	make_opcode_output(NULL);
+	make_symtab_output("symtab_20160273.txt");
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 //	assem_pass2();
 //	make_objectcode_output("output_20160273");
 
@@ -389,7 +394,11 @@ static int assem_pass1(void)
 	for (int i = 0; i < line_num; i++) { //line_num (전체 input.txt) 길이 만큼 토큰파싱하기
 		token_parsing(input_data[i]);
 	}
+<<<<<<< HEAD
 	//	int op = 0;
+=======
+//	int op = 0;
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 	char *bufT = NULL; //버퍼 끝
 	char *bufH = NULL; //버퍼 시작
 	int save = 0;
@@ -405,7 +414,11 @@ static int assem_pass1(void)
 					save = locctr;
 				}
 			}
+<<<<<<< HEAD
 			token_table[i]->addr = 0;
+=======
+			token_table[i]->addr = 0; 
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 			continue;
 		}
 		else if (strstr(token_table[i]->operator,"EXT") || (!strcmp(token_table[i]->label, "."))) {
@@ -532,7 +545,10 @@ static int assem_pass1(void)
 //		}
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 /* ----------------------------------------------------------------------------------
 * 설명 : 입력된 문자열의 이름을 가진 파일에 프로그램의 결과를 저장하는 함수이다.
 *        여기서 출력되는 내용은 명령어 옆에 OPCODE가 기록된 표(과제 4번) 이다.
@@ -614,7 +630,11 @@ void make_symtab_output(char *file_name) {
 			fprintf(file, "%s\t\t\t%X\n", sym_table[i].symbol, sym_table[i].addr);
 		}
 	}
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 }
 /* ----------------------------------------------------------------------------------
 * 설명 : 어셈블리 코드를 기계어 코드로 바꾸기 위한 패스2 과정을 수행하는 함수이다.
@@ -628,6 +648,7 @@ void make_symtab_output(char *file_name) {
 */
 static int assem_pass2(void)
 {
+<<<<<<< HEAD
 	int opindex = 0;
 	char *temp = NULL;
 	int TA = 0;
@@ -763,6 +784,10 @@ static int assem_pass2(void)
 
 			}
 		}
+=======
+	for (int i = 0; i < token_line; i++) {
+		myopcode = search_opcode(token_table[i]->operator);
+>>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 	}
 
 }
