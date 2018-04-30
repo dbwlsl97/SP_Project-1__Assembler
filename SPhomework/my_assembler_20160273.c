@@ -42,15 +42,14 @@ int main(int args, char *arg[])
 		return -1;
 	}
 //	make_opcode_output("output_20160273.txt");
-//	make_opcode_output(NULL);
 //	make_symtab_output("symtab_20160273.txt");
 //	assem_pass2();
 //	make_objectcode_output("output_20160273");
 
-	//if(assem_pass2() < 0 ){
-	//printf(" assem_pass2: 패스2 과정에서 실패하였습니다.  \n") ;
-	//return -1 ;
-	//}
+	if(assem_pass2() < 0 ){
+	printf(" assem_pass2: 패스2 과정에서 실패하였습니다.  \n") ;
+	return -1 ;
+	}
 	//make_objectcode_output("output") ;
 
 	return 0;
@@ -192,14 +191,25 @@ int token_parsing(char *str)
 	}
 	int count_com = 0;
 	int i = token_line;
-	token_table[i] = (token *)malloc(sizeof(token));
-	token_table[i]->label = (char *)malloc(sizeof(char) * 10); 
-	token_table[i]->operator = (char *)malloc(sizeof(char) * 30); 
-	for (int j = 0; j < MAX_OPERAND; j++) {
-		token_table[i]->operand[j] = (char *)malloc(sizeof(char) * 30); 
-	}
 	int op = 0;
-	token_table[i]->comment = (char *)malloc(sizeof(char) * 30);
+
+	token_table[i] = (token *)calloc(1, sizeof(token));
+	token_table[i]->label = (char *)calloc(10, sizeof(char));
+	token_table[i]->operator = (char *)calloc(30, sizeof(char));
+	for (int j = 0; j < MAX_OPERAND; j++) {
+		token_table[i]->operand[j] = (char *)calloc(30, sizeof(char));
+	}
+
+	token_table[i]->comment = (char *)calloc(30, sizeof(char));
+
+	//token_table[i] = (token *)malloc(sizeof(token));
+	//token_table[i]->label = (char *)malloc(sizeof(char) * 10); 
+	//token_table[i]->operator = (char *)malloc(sizeof(char) * 30); 
+	//for (int j = 0; j < MAX_OPERAND; j++) {
+	//	token_table[i]->operand[j] = (char *)malloc(sizeof(char) * 30); 
+	//}
+	//
+	//token_table[i]->comment = (char *)malloc(sizeof(char) * 30);
 	char * token_str = (char *)malloc(sizeof(char) * 30); // str을 복사하기 위해 선언된 변수
 	char * save = (char *)malloc(sizeof(char) * 30); // 탭을 기준으로 strtok 를 사용하기 위해 선언된 변수
 	char * toto = (char *)malloc(sizeof(char) * 30); //콤마를 기준으로 strtok 를 사용하기 위해 선언된 변수
@@ -322,9 +332,14 @@ int token_parsing(char *str)
 		return -1;
 		break;
 	}
+	if (strstr(token_table[token_line]->operator,"+")&&(!strcmp(token_table[token_line]->operand[1], "X"))) {  //확인안해봄
+		strcpy(token_table[token_line]->operand[2], token_table[token_line]->operand[1]);
+		strcpy(token_table[token_line]->operand[1], "");
+	}
 	if (strstr(token_table[token_line]->operand[0], "=")) { // 오퍼랜드에 "="이 있으면 리터럴 테이블에 오퍼랜드 값 넣어주기
 		strcpy(lit_table[token_line].literal, token_table[token_line]->operand[0]);
 	}
+	
 	token_line++;
 		return 0;
 }
@@ -374,10 +389,149 @@ static int assem_pass1(void)
 	for (int i = 0; i < line_num; i++) { //line_num (전체 input.txt) 길이 만큼 토큰파싱하기
 		token_parsing(input_data[i]);
 	}
-	make_symtab_output("sym_tab20160273.txt");
+	//	int op = 0;
+	char *bufT = NULL; //버퍼 끝
+	char *bufH = NULL; //버퍼 시작
+	int save = 0;
+	for (int i = 0; i < token_line; i++) {
+		token_table[i]->addr = locctr;
+		if (!strcmp(token_table[i]->operator,"START")) {
+			strcpy(sym_table[i].symbol, token_table[i]->label);
+			continue;
+		}
+		else if (!strcmp(token_table[i]->operator,"END")) {
+			for (int j = 0; j < i; j++) {
+				if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
+					save = locctr;
+				}
+			}
+			token_table[i]->addr = 0;
+			continue;
+		}
+		else if (strstr(token_table[i]->operator,"EXT") || (!strcmp(token_table[i]->label, "."))) {
+			continue;
+		}
+		myopcode = search_opcode(token_table[i]->operator);
+		if (myopcode >= 0) {
+			token_table[i]->addr = locctr;
+			if (strstr(inst_table[myopcode]->format, "1")) {
+				locctr += 1;
+			}
+			else if (strstr(inst_table[myopcode]->format, "2")) {
+				locctr += 2;
+			}
+			else if (!strcmp(inst_table[myopcode]->format, "3/4")) {
+				if (strchr(token_table[i]->operator,'+')) {
+					locctr += 4;
+				}
+				else {
+					locctr += 3;
+				}
+			}
+			if (!strcmp(token_table[i]->label, "")) {
+				strcpy(sym_table[i].symbol, "\0");
+			}
+			else {
+				strcpy(sym_table[i].symbol, token_table[i]->label);
+				sym_table[i].addr = token_table[i]->addr;
+			}
+		}
+		else {
+			token_table[i]->addr = locctr;
+			if (!strcmp(token_table[i]->operator,"RESW")) {
+				locctr += atoi(token_table[i]->operand[0]) * 3;
+			}
+			else if (!strcmp(token_table[i]->operator,"RESB")) {
+				locctr += atoi(token_table[i]->operand[0]);
+			}
+			else if (!strcmp(token_table[i]->operator,"CSECT")) {
+				for (int j = 0; j < i; j++) {
+					if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
+						save = locctr;
+					}
+				}
+				locctr = 0;
+				token_table[i]->addr = locctr;
+			}
+			else if (!strcmp(token_table[i]->operator,"BYTE")) {
+				locctr += 1;
+			}
+			else if (!strcmp(token_table[i]->operator,"WORD") || (!strcmp(token_table[i]->operator,"LTORG"))) {
+				locctr += 3;
+			}
+			if (!strcmp(token_table[i]->label, "")) {
+				strcpy(sym_table[i].symbol, "\0");
+			}
+			else {
+				strcpy(sym_table[i].symbol, token_table[i]->label);
+				sym_table[i].addr = token_table[i]->addr;
+			}
+			if (!strcmp(token_table[i]->operator,"EQU")) {
+				if (strstr(token_table[i]->operand[0], "-")) {
+					int loc1 = 0;
+					int loc2 = 0;
+					bufT = strtok(token_table[i]->operand[0], "-");
+					bufH = strtok(NULL, "-");
+					strcpy(token_table[i]->operand[0], bufT);
+					strcpy(token_table[i]->operand[1], bufH);
+					for (int j = 0; j < token_line; j++) {
+						if (!strcmp(token_table[i]->operand[0], sym_table[j].symbol)) {
+							loc1 = token_table[j]->addr;
+						}
+						if (!strcmp(token_table[i]->operand[1], sym_table[j].symbol)) {
+							loc2 = token_table[j]->addr;
+						}
+					}
+					locctr = loc1 - loc2;
+					token_table[i]->addr = locctr;
+					sym_table[i].addr = token_table[i]->addr;
+				}
+			}
+		}
+		if (!strcmp(token_table[i]->operator, "LTORG")) {
+			for (int j = 0; j < i; j++) {
+				if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
+					lit_table[j].addr = token_table[i]->addr;
+				}
+			}
+		}
+	}
+	for (int i = 0; i < token_line; i++) {
+		if (!strcmp(lit_table[i].literal, token_table[i]->operand[0]) && (lit_table[i].addr == 0)) {
+			int j = i;
+			for (; (token_table[j]->addr != 0); j++) {
+				lit_table[i].addr = save;
+			}
+		}
+
+	}
 
 	return 0;
 }
+
+//char *temp = NULL;
+//char *temp2 = NULL;
+//char *tokenlit = NULL;
+//		if (!strcmp(token_table[i]->operand[0], lit_table[i].literal)) {
+//			for (int j = i; sym_table[j].addr != 0; j++) {
+////			for (int j = 0; j < token_line; j++) {
+//				if (!strcmp(token_table[j]->operator, "LTORG")) {
+//					lit_table[i].addr = sym_table[j].addr;
+//				}
+//				else {
+//					lit_table[j].addr = sym_table[j].addr;
+//					//sym_table[i].addr;
+//				}
+//				//if (lit_table[j].literal != "\0") {
+//				//	//strcpy(tokenlit, lit_table[j].literal);
+//				//	//temp = strtok(tokenlit, "'");   -----> 나누기 생각 끄적여본것
+//				//	//temp2 = strtok(NULL, "'");
+//				//	
+//				//}
+//			}
+//		}
+
+
 
 /* ----------------------------------------------------------------------------------
 * 설명 : 입력된 문자열의 이름을 가진 파일에 프로그램의 결과를 저장하는 함수이다.
@@ -455,134 +609,13 @@ void make_symtab_output(char *file_name) {
 		file = fopen(file_name, "w");
 		printf("%s 파일이 생성되었습니다.\n", file_name);
 	}
-	int op = 0;
-	char *bufT = NULL; //버퍼 끝
-	char *bufH = NULL; //버퍼 시작
-	int save = 0;
 	for (int i = 0; i < token_line; i++) {
-		sym_table[i].addr = locctr;
-		save = i;
-		if (!strcmp(token_table[i]->operator,"START")) {
-			strcpy(sym_table[i].symbol, token_table[i]->label);
-			continue;
-		}
-		else if (!strcmp(token_table[i]->operator,"END")) {
-			save = sym_table[i].addr;
-			sym_table[i].addr = NULL;
-			continue;
-		}
-		else if (strstr(token_table[i]->operator,"EXT")) {
-			continue;
-		}
-		else if (!strcmp(token_table[i]->label, ".")) {
-			continue;
-		}
-		op = search_opcode(token_table[i]->operator);
-		if (op >= 0) {
-			sym_table[i].addr = locctr;
-			if (strstr(inst_table[op]->format, "2")) {
-				locctr += 2;
-			}
-			else if (!strcmp(inst_table[op]->format, "3/4")) {
-				if (strchr(token_table[i]->operator,'+')) {
-					locctr += 4;
-				}
-				else {
-					locctr += 3;
-				}
-			}
-			if (!strcmp(token_table[i]->label, "")) {
-				strcpy(sym_table[i].symbol, "\0");
-			}
-			else {
-				strcpy(sym_table[i].symbol, token_table[i]->label);
-			}
-		}
-		else {
-			sym_table[i].addr = locctr;
-			if (!strcmp(token_table[i]->operator,"RESW")) {
-				locctr += atoi(token_table[i]->operand[0]) * 3;
-			}
-			else if (!strcmp(token_table[i]->operator,"RESB")) {
-				locctr += atoi(token_table[i]->operand[0]);
-			}
-			else if (!strcmp(token_table[i]->operator,"CSECT")) {
-				locctr = 0;
-				sym_table[i].addr = locctr;
-			}
-			else if (!strcmp(token_table[i]->operator,"BYTE")) {
-				locctr += 1;
-			}
-			else if (!strcmp(token_table[i]->operator,"WORD") || (!strcmp(token_table[i]->operator,"LTORG"))) {
-				locctr += 3;
-			}
-			if (!strcmp(token_table[i]->label, "")) {
-				strcpy(sym_table[i].symbol, "\0");
-			}
-			else {
-				strcpy(sym_table[i].symbol, token_table[i]->label);
-			}
-			if (!strcmp(token_table[i]->operator,"EQU")) {
-
-				if (strstr(token_table[i]->operand[0], "-")) {
-					int loc1 = 0;
-					int loc2 = 0;
-					bufT = strtok(token_table[i]->operand[0], "-");
-					bufH = strtok(NULL, "-");
-					strcpy(token_table[i]->operand[0], bufT);
-					strcpy(token_table[i]->operand[1], bufH);
-					for (int j = 0; j < token_line; j++) {
-						if (!strcmp(token_table[i]->operand[0], sym_table[j].symbol)) {
-							loc1 = sym_table[j].addr;
-						}
-						if (!strcmp(token_table[i]->operand[1], sym_table[j].symbol)) {
-							loc2 = sym_table[j].addr;
-						}
-					}
-					locctr = loc1 - loc2;
-					sym_table[i].addr = locctr;
-				}
-			}
-		}
-		if (!strcmp(token_table[i]->operator, "LTORG")) {
-			for (int j = 0; j < i; j++) {
-				if (!strcmp(lit_table[j].literal, token_table[j]->operand[0])) {
-					lit_table[j].addr = sym_table[i].addr;
-				}
-			}
-		}
-		//char *temp = NULL;
-		//char *temp2 = NULL;
-		//char *tokenlit = NULL;
-		//		if (!strcmp(token_table[i]->operand[0], lit_table[i].literal)) {
-		//			for (int j = i; sym_table[j].addr != 0; j++) {
-		////			for (int j = 0; j < token_line; j++) {
-		//				if (!strcmp(token_table[j]->operator, "LTORG")) {
-		//					lit_table[i].addr = sym_table[j].addr;
-		//				}
-		//				else {
-		//					lit_table[j].addr = sym_table[j].addr;
-		//					//sym_table[i].addr;
-		//				}
-		//				//if (lit_table[j].literal != "\0") {
-		//				//	//strcpy(tokenlit, lit_table[j].literal);
-		//				//	//temp = strtok(tokenlit, "'");   -----> 나누기 생각 끄적여본것
-		//				//	//temp2 = strtok(NULL, "'");
-		//				//	
-		//				//}
-		//			}
-		//		}
-	}
-	for (int i = 0; i < token_line; i++) {
-		if (!strcmp(lit_table[i].literal, token_table[i]->operand[0]) && (lit_table[i].addr == 0)) {
-			lit_table[i].addr = save;
-		}
 		if (strcmp(sym_table[i].symbol, "\0")) {
-			fprintf(file, "%s\t\t\t\t%X\n", sym_table[i].symbol, sym_table[i].addr);
+			fprintf(file, "%s\t\t\t%X\n", sym_table[i].symbol, sym_table[i].addr);
 		}
 	}
+
 }
-//(strcmp(sym_table[i].symbol, "\0"))
 /* ----------------------------------------------------------------------------------
 * 설명 : 어셈블리 코드를 기계어 코드로 바꾸기 위한 패스2 과정을 수행하는 함수이다.
 *		   패스 2에서는 프로그램을 기계어로 바꾸는 작업은 라인 단위로 수행된다.
@@ -593,12 +626,146 @@ void make_symtab_output(char *file_name) {
 * 주의 :
 * -----------------------------------------------------------------------------------
 */
-//static int assem_pass2(void)
-//{
-//
-//	/* add your code here */
-//
-//}
+static int assem_pass2(void)
+{
+	int opindex = 0;
+	char *temp = NULL;
+	int TA = 0;
+	int PC = 0;
+	char *lit = "";
+	for (int i = 0; i < token_line; i++) {
+		opindex = search_opcode(token_table[i]->operator);
+		if (opindex >= 0) {
+			if (strstr(inst_table[opindex]->format, "2")) {
+				token_table[i]->obcode = (int)(strtol((inst_table[opindex]->opcode), NULL, 16)) << 8;
+				for (int j = 0; j < 2; j++) {
+					if (token_table[i]->operand[i] != NULL) {
+						token_table[i]->obcode << 4;
+						if (!strcmp(token_table[i]->operand[j], "A"))
+							token_table[i]->obcode |= (0 << 4);
+
+						else if (!strcmp(token_table[i]->operand[j], "X"))
+							token_table[i]->obcode |= (1 << 4);
+
+						else if (!strcmp(token_table[i]->operand[j], "L"))
+							token_table[i]->obcode |= (2 << 4);
+
+						else if (!strcmp(token_table[i]->operand[j], "B"))
+							token_table[i]->obcode |= (3 << 4);
+
+						else if (!strcmp(token_table[i]->operand[j], "S"))
+							token_table[i]->obcode |= (4 << 4);
+
+						else if (!strcmp(token_table[i]->operand[j], "T"))
+							token_table[i]->obcode |= (5 << 4);
+						else if (!strcmp(token_table[i]->operand[j], "F"))
+							token_table[i]->obcode |= (6 << 4);
+						else if (!strcmp(token_table[i]->operand[j], "PC"))
+							token_table[i]->obcode |= 8 << 4;
+						else if (!strcmp(token_table[i]->operand[j], "SW"))
+							token_table[i]->obcode |= 9 << 4;
+
+					}
+				}
+				printf("%-04X\n", token_table[i]->obcode);
+				
+				
+			}
+			if (!strcmp(inst_table[opindex]->format, "3/4")) {
+				if (strstr(token_table[i]->operator,"+")) {
+					token_table[i]->obcode = (int)(strtol((inst_table[opindex]->opcode), NULL, 16)) << 24;
+					token_table[i]->nixbpe = (NN + II + EE);
+					if (!strcmp(token_table[i]->operand[2], "X")) {
+						token_table[i]->nixbpe += XX;
+						token_table[i]->obcode += (token_table[i]->nixbpe) << 20;
+					}
+					else {
+						token_table[i]->obcode += (token_table[i]->nixbpe) << 20;
+					}
+				}
+				else {
+					token_table[i]->obcode = (int)(strtol((inst_table[opindex]->opcode), NULL, 16)) << 16;
+					if (strchr(token_table[i]->operand[0], '#')) {
+						token_table[i]->nixbpe = II;
+						token_table[i]->obcode += (token_table[i]->nixbpe) << 12;
+						temp = strtok(token_table[i]->operand[0], "#");
+						token_table[i]->obcode += atoi(temp);
+//						printf("%06X\n", token_table[i]->obcode);
+					}
+					else if (strchr(token_table[i]->operand[0], '@')) {
+						token_table[i]->nixbpe = (NN + PP);
+						token_table[i]->obcode += (token_table[i]->nixbpe) << 12;
+						temp = strtok(token_table[i]->operand[0], "@");
+						for (int j = 0; j < token_line; j++) {
+							if (!strcmp(temp, sym_table[j].symbol)) {
+								TA = (sym_table[j].addr);
+							}
+						}
+						PC = (token_table[i + 1]->addr);
+						token_table[i]->obcode += (TA - PC);
+						
+					}
+					else if (!strcmp(lit_table[i].literal,token_table[i]->operand[0])) {
+						strcpy(temp, lit_table[i].literal);
+						lit = strtok(temp, "'");
+						lit = strtok(NULL, "'");
+						
+						if (lit != NULL) {
+							for (int j = 0; j<strlen(lit); j++) {
+								//printf("%X\n", lit[j]);
+								token_table[i]->obcode += lit[j];
+								if (lit == NULL) {
+									break;
+								}
+							}
+						}
+						token_table[i]->nixbpe = (NN + II + PP);
+						token_table[i]->obcode += (token_table[i]->nixbpe) << 12;
+						for (int j = 0; j < token_line; j++) {
+							if (!strcmp(lit_table[j].literal, token_table[i]->operand[0])) {
+								TA = (lit_table[j].addr);
+							}
+						}
+						PC = (token_table[i + 1]->addr);
+						token_table[i]->obcode += (TA - PC);
+						for (int j = i; token_table[j]->addr != 0; j++) {
+							if (!strcmp(token_table[j]->operator,"LTORG")) {
+								//for (int q = 0; q < strlen(lit); q++) {
+								//	sprintf(token_table[j]->obcode, "%x", lit[q]);
+								//}
+								//저장
+							}
+							else {
+								//저장
+							}
+						}
+					}
+					else {
+						token_table[i]->nixbpe = (NN + II + PP);
+						token_table[i]->obcode += (token_table[i]->nixbpe) << 12;
+						for (int j = 0; j < token_line; j++) {
+							if (!strcmp(sym_table[j].symbol, token_table[i]->operand[0])) {
+								TA = sym_table[j].addr;
+								
+							}
+						}
+						PC = (token_table[i + 1]->addr);
+						if (TA <= PC) {
+							token_table[i]->obcode += ((TA - PC) & 0x00000FFF);
+						}
+						else {
+							token_table[i]->obcode += (TA - PC);
+						}
+			//			printf("%06X\n", token_table[i]->obcode);
+					}
+
+				}
+
+			}
+		}
+	}
+
+}
 
 /* ----------------------------------------------------------------------------------
 * 설명 : 입력된 문자열의 이름을 가진 파일에 프로그램의 결과를 저장하는 함수이다.

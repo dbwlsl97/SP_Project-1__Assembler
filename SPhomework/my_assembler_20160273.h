@@ -5,7 +5,12 @@
 #define MAX_INST 256
 #define MAX_LINES 5000
 #define MAX_OPERAND 3
-
+#define NN 0b00100000
+#define II 0b00010000
+#define XX 0b00001000
+#define BB 0b00000100
+#define PP 0b00000010
+#define EE 0b00000001
 /*
 * instruction 목록 파일로 부터 정보를 받아와서 생성하는 구조체 변수이다.
 * 구조는 각자의 instruction set의 양식에 맞춰 직접 구현하되
@@ -35,11 +40,13 @@ int label_num;
 * nixbpe는 8bit 중 하위 6개의 bit를 이용하여 n,i,x,b,p,e를 표시한다.
 */
 struct token_unit {
+	int addr;
 	char *label;
 	char *operator;
 	char *operand[MAX_OPERAND];
 	char *comment;
 	char nixbpe;
+	int obcode;
 };
 
 typedef struct token_unit token;
@@ -67,6 +74,7 @@ struct literal_unit{
 };
 typedef struct literal_unit literal;
 literal lit_table[MAX_LINES];
+
 //--------------
 
 static char *input_file;
