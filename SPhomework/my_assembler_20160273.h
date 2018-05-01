@@ -40,6 +40,7 @@ int label_num;
 * nixbpe는 8bit 중 하위 6개의 bit를 이용하여 n,i,x,b,p,e를 표시한다.
 */
 struct token_unit {
+	int sec_addr;
 	int addr;
 	char *label;
 	char *operator;
@@ -47,7 +48,6 @@ struct token_unit {
 	char *comment;
 	char nixbpe;
 	int obcode;
-	
 };
 
 typedef struct token_unit token;
@@ -61,9 +61,12 @@ int myopcode; //search_opcode 함수 사용 시에 사용하는 변수
 * 심볼을 관리하는 구조체이다.
 * 심볼 테이블은 심볼 이름, 심볼의 위치로 구성된다.
 */
+static int section;
+
 struct symbol_unit {
 	char symbol[10];
 	int addr;
+	int sec_addr;
 };
 typedef struct symbol_unit symbol;
 symbol sym_table[MAX_LINES];
@@ -76,8 +79,11 @@ struct literal_unit{
 };
 typedef struct literal_unit literal;
 literal lit_table[MAX_LINES];
-static int section;
+
 char *lit = "";
+char *bufT = ""; //버퍼 끝
+char *bufH = ""; //버퍼 시작
+
 //--------------
 
 static char *input_file;

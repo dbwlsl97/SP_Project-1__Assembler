@@ -235,112 +235,114 @@ int token_parsing(char *str)
 	//		strstr()
 	//	}
 
-	//		
-	//}
-	//else if (strchr(str, ".")) {
-	//	strcpy(token_table[i]->comment, str);
-	//}
-	
-	char *zero = (char *)malloc(sizeof(char) * 30);
+//		
+//}
+//else if (strchr(str, ".")) {
+//	strcpy(token_table[i]->comment, str);
+//}
 
-	
-	strcpy(toto, str);		// strtok를 사용할 문자열을 token_str에 복사
-	save = strtok(token_str, "\t");		// strtok 를 통해
-	while (save != NULL) {				// 탭을 기준으로 
-			save = strtok(NULL, "\t");	// 토큰들을 잘라주고
-			token_count++;				// 토큰 개수를 셉니다.
+char *zero = (char *)malloc(sizeof(char) * 30);
+
+
+strcpy(toto, str);		// strtok를 사용할 문자열을 token_str에 복사
+save = strtok(token_str, "\t");		// strtok 를 통해
+while (save != NULL) {				// 탭을 기준으로 
+	save = strtok(NULL, "\t");	// 토큰들을 잘라주고
+	token_count++;				// 토큰 개수를 셉니다.
+}
+
+if (strstr(str, ",")) {				// strstr로 콤마가 들어가 있는 문자열을 찾고
+	toto = strtok(toto, ",");		// strtok 를 통해
+	while (toto != NULL) {			// 콤마를 기준으로
+		toto = strtok(NULL, ",");	// 토큰들을 잘라주고
+		count_com++;				// 콤마 개수를 셉니다
 	}
-		
-	if (strstr(str, ",")) {				// strstr로 콤마가 들어가 있는 문자열을 찾고
-		toto = strtok(toto, ",");		// strtok 를 통해
-		while (toto != NULL) {			// 콤마를 기준으로
-			toto = strtok(NULL, ",");	// 토큰들을 잘라주고
-			count_com++;				// 콤마 개수를 셉니다
+}
+tocount[token_line] = token_count;	// 각 문자열 하나 당 토큰 개수를 저장합니다 ( tocount 배열은 output 함수로 파일만들 때 사용 )
+
+switch (token_count) {				// 토큰 개수를 이용한 switch - case 문
+case 1: if (str[0] == '.') {		// 토큰 개수가 1개이고, 문자열 시작이 . 이라면 .을 label 에 넣어줍니다
+	strcpy(token_table[token_line]->operator, "");
+	sscanf(input_data[token_line], "%s\t%s", token_table[token_line]->label, token_table[token_line]->operator);
+	strcpy(output[token_line], input_data[token_line]);
+}
+		else {						// 아니라면 토큰 하나를 operator 에 넣어줍니다.
+			strcpy(token_table[token_line]->label, "");
+			sscanf(input_data[token_line], "%s", token_table[token_line]-> operator);
+			strcpy(output[token_line], input_data[token_line]);
 		}
-	}
-	tocount[token_line] = token_count;	// 각 문자열 하나 당 토큰 개수를 저장합니다 ( tocount 배열은 output 함수로 파일만들 때 사용 )
-								
-	switch (token_count) {				// 토큰 개수를 이용한 switch - case 문
-	case 1: if (str[0] == '.') {		// 토큰 개수가 1개이고, 문자열 시작이 . 이라면 .을 label 에 넣어줍니다
-		strcpy(token_table[token_line]->operator, "");
-		sscanf(input_data[token_line], "%s\t%s", token_table[token_line]->label, token_table[token_line]->operator);
-		strcpy(output[token_line], input_data[token_line]);
-	}
-			else {						// 아니라면 토큰 하나를 operator 에 넣어줍니다.
-				strcpy(token_table[token_line]->label, "");
-				sscanf(input_data[token_line], "%s", token_table[token_line]-> operator);
-				strcpy(output[token_line], input_data[token_line]);
-			}
-			break;
-	case 2:								// 토큰 개수가 2개이고, 문자열 시작이 . 이라면 .을 label에, 나머지 토큰은 comment에 넣어줍니다.
-		if (strstr(input_data[token_line], ".")) {
+		break;
+case 2:								// 토큰 개수가 2개이고, 문자열 시작이 . 이라면 .을 label에, 나머지 토큰은 comment에 넣어줍니다.
+	if (strstr(input_data[token_line], ".")) {
 		strcpy(token_table[token_line]->operator, "");
 		sscanf(input_data[token_line], "%s\t%s\t%[^\r\n]", token_table[token_line]->label, token_table[token_line]->operator, token_table[token_line]->comment);
 		strcpy(output[token_line], input_data[token_line]);
 	}
-			else if (str[0] == '\t') {	// 토큰 개수가 2개이고, 문자열 처음이 탭이라면 label은 없다는 뜻
-				strcpy(token_table[token_line]->label, "");
-				sscanf(input_data[token_line], "%s", token_table[token_line]->operator); //먼저 operator를 가져와 
-				op = search_opcode(token_table[token_line]->operator);					
-				if (op >= 0 && strstr(inst_table[op]->num_operand, "0")) {				 //inst_table의 오퍼랜드 개수가 0인것을 확인
-					sscanf(input_data[token_line], "%s\t\t%[^\r\n]", token_table[token_line]->operator, token_table[token_line]->comment);
-					strcpy(output[token_line], input_data[token_line]);
-				}
-				else if (count_com == 3) {	// 그 때의 comma 로 나눈 문자열 개수가 3개라면 ,를 두번 써서 각 operand[0],[1],[2] 에 넣어줌
-					sscanf(input_data[token_line], "%s\t%[^,],%[^,],%s", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->operand[1], token_table[token_line]->operand[2]);
-					strcpy(output[token_line], input_data[token_line]);
-				}
-				else if (count_com == 2) {	// 그 때의 comma 로 나눈 문자열 개수가 3개라면 ,를 두번 써서 각 operand[0],[1],[2] 에 넣어줌
-					sscanf(input_data[token_line], "%s\t%[^,],%s",
-						token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->operand[1]);
-					strcpy(output[token_line], input_data[token_line]);
-				}
-				else{					// comma도 없고, label이 없으면 operator, operand[9]에 저장
-					sscanf(input_data[token_line], "%s\t%s", token_table[token_line]->operator, token_table[token_line]->operand[0]);
-					strcpy(output[token_line], input_data[token_line]);
-				}
-			}
-			else {	// 문자열 처음이 탭이면 label과 operator 에 저장
-				sscanf(input_data[token_line], "%s\t%s", token_table[token_line]->label, token_table[token_line]->operator);
-				strcpy(output[token_line], input_data[token_line]);
-				
-			}
-			break;
-	case 3: if (str[0] == '\t') { // label 이 없을 때
+	else if (str[0] == '\t') {	// 토큰 개수가 2개이고, 문자열 처음이 탭이라면 label은 없다는 뜻
 		strcpy(token_table[token_line]->label, "");
-		if (count_com == 2) {	// operand 에 콤마가 있을 때
-			sscanf(input_data[token_line], "%s\t%[^,],%s\t%[^\r\n]", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->operand[1], token_table[token_line]->comment);
+		sscanf(input_data[token_line], "%s", token_table[token_line]->operator); //먼저 operator를 가져와 
+		op = search_opcode(token_table[token_line]->operator);
+		if (op >= 0 && strstr(inst_table[op]->num_operand, "0")) {				 //inst_table의 오퍼랜드 개수가 0인것을 확인
+			sscanf(input_data[token_line], "%s\t\t%[^\r\n]", token_table[token_line]->operator, token_table[token_line]->comment);
 			strcpy(output[token_line], input_data[token_line]);
 		}
-		else {					// operand 에 콤마가 없을 때
-							strcpy(token_table[token_line]->operand[1], "");
-			sscanf(input_data[token_line], "%s\t%s\t%[^\r\n]", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->comment);
-							sscanf(input_data[token_line], "%s %s %[^\r\n]", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->comment);
+		else if (count_com == 3) {	// 그 때의 comma 로 나눈 문자열 개수가 3개라면 ,를 두번 써서 각 operand[0],[1],[2] 에 넣어줌
+			sscanf(input_data[token_line], "%s\t%[^,],%[^,],%s", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->operand[1], token_table[token_line]->operand[2]);
+			strcpy(output[token_line], input_data[token_line]);
+		}
+		else if (count_com == 2) {	// 그 때의 comma 로 나눈 문자열 개수가 3개라면 ,를 두번 써서 각 operand[0],[1],[2] 에 넣어줌
+			sscanf(input_data[token_line], "%s\t%[^,],%s",
+				token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->operand[1]);
+			strcpy(output[token_line], input_data[token_line]);
+		}
+		else {					// comma도 없고, label이 없으면 operator, operand[9]에 저장
+			sscanf(input_data[token_line], "%s\t%s", token_table[token_line]->operator, token_table[token_line]->operand[0]);
 			strcpy(output[token_line], input_data[token_line]);
 		}
 	}
-			else {				// label 이 있을 때
-				sscanf(input_data[token_line], "%s\t%s\t%s",
-					token_table[token_line]->label, token_table[token_line]->operator, token_table[token_line]->operand[0]);
-				strcpy(output[token_line], input_data[token_line]);
-			}
-			break;
-	case 4: {	// label, operator, operand, comment가 다 있을 때
-		sscanf(input_data[token_line], "%s\t%s\t%s\t%[^\r\n]", token_table[token_line]->label, token_table[token_line]->operator,token_table[token_line]->operand[0], token_table[token_line]->comment);
+	else {	// 문자열 처음이 탭이면 label과 operator 에 저장
+		sscanf(input_data[token_line], "%s\t%s", token_table[token_line]->label, token_table[token_line]->operator);
+		strcpy(output[token_line], input_data[token_line]);
+
+	}
+	break;
+case 3: if (str[0] == '\t') { // label 이 없을 때
+	strcpy(token_table[token_line]->label, "");
+	if (count_com == 2) {	// operand 에 콤마가 있을 때
+		sscanf(input_data[token_line], "%s\t%[^,],%s\t%[^\r\n]", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->operand[1], token_table[token_line]->comment);
 		strcpy(output[token_line], input_data[token_line]);
 	}
-			break;
-	default:
-		return -1;
+	else {					// operand 에 콤마가 없을 때
+		strcpy(token_table[token_line]->operand[1], "");
+		sscanf(input_data[token_line], "%s\t%s\t%[^\r\n]", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->comment);
+		sscanf(input_data[token_line], "%s %s %[^\r\n]", token_table[token_line]->operator, token_table[token_line]->operand[0], token_table[token_line]->comment);
+		strcpy(output[token_line], input_data[token_line]);
+	}
+}
+		else {				// label 이 있을 때
+			sscanf(input_data[token_line], "%s\t%s\t%s",
+				token_table[token_line]->label, token_table[token_line]->operator, token_table[token_line]->operand[0]);
+			strcpy(output[token_line], input_data[token_line]);
+		}
 		break;
-	}
-	if (!strcmp(token_table[token_line]->operator,"CSECT")) {
-		section++;
-	}
+case 4: {	// label, operator, operand, comment가 다 있을 때
+	sscanf(input_data[token_line], "%s\t%s\t%s\t%[^\r\n]", token_table[token_line]->label, token_table[token_line]->operator,token_table[token_line]->operand[0], token_table[token_line]->comment);
+	strcpy(output[token_line], input_data[token_line]);
+}
+		break;
+default:
+	return -1;
+	break;
+}
 	if (strstr(token_table[token_line]->operator,"+")&&(!strcmp(token_table[token_line]->operand[1], "X"))) {  //확인안해봄
 		strcpy(token_table[token_line]->operand[2], token_table[token_line]->operand[1]);
 		strcpy(token_table[token_line]->operand[1], "");
 	}
+	if (strstr(token_table[token_line]->operator,"CSECT")) {
+		section++;
+	}
+	token_table[token_line]->sec_addr = section;
+	sym_table[token_line].sec_addr = token_table[token_line]->sec_addr;
 	if (strstr(token_table[token_line]->operand[0], "=")) { // 오퍼랜드에 "="이 있으면 리터럴 테이블에 오퍼랜드 값 넣어주기
 		strcpy(lit_table[token_line].literal, token_table[token_line]->operand[0]);
 		lit_table[token_line].sec_addr = section;
@@ -395,10 +397,7 @@ static int assem_pass1(void)
 	for (int i = 0; i < line_num; i++) { //line_num (전체 input.txt) 길이 만큼 토큰파싱하기
 		token_parsing(input_data[i]);
 	}
-	//	int op = 0;
 //	int op = 0;
-	char *bufT = NULL; //버퍼 끝
-	char *bufH = NULL; //버퍼 시작
 	int save = 0;
 	for (int i = 0; i < token_line; i++) {
 		token_table[i]->addr = locctr;
@@ -514,7 +513,12 @@ static int assem_pass1(void)
 		}
 
 	}
-
+	//for (int i = 0; i < token_line; i++) {
+	//	if (!strcmp(token_table[i]->operator,"CSECT")) {
+	//		section++;
+	//		token_table[i]->sec_addr = section;
+	//	}
+	//}
 	return 0;
 }
 
@@ -640,7 +644,7 @@ static int assem_pass2(void)
 	int TA = 0;
 	int PC = 0;
 	char for2 = 0;
-
+	char *bw = NULL; //byte word 저장 변수
 	for (int i = 0; i < token_line; i++) {
 		opindex = search_opcode(token_table[i]->operator);
 		if (opindex >= 0) {
@@ -716,12 +720,27 @@ static int assem_pass2(void)
 						if (lit != NULL) {
 							for (int j = 0; j < strlen(lit); j++) {
 								//printf("%X\n", lit[j]);
-								token_table[i]->obcode += lit[j];
+								token_table[i]->obcode = lit[j];
+
+								//							printf("%X\n", token_table[i]->obcode);
 								if (lit == NULL) {
 									break;
 								}
 							}
 						}
+						//strcpy(temp, lit_table[i].literal);
+						//for (int j = 2; j < strlen(temp); j++) {
+						//	lit[j] += lit_table[i].literal[j];
+						//}
+						//if (lit != NULL) {
+						//	for (int j = 0; j < strlen(lit); j++) {
+						//		token_table[i]->obcode += lit[j];
+
+						//		if (lit == NULL) {
+						//			break;
+						//		}
+						//	}
+						//}
 						token_table[i]->nixbpe = (NN + II + PP);
 						token_table[i]->obcode += (token_table[i]->nixbpe) << 12;
 						for (int j = 0; j < token_line; j++) {
@@ -732,15 +751,15 @@ static int assem_pass2(void)
 						PC = (token_table[i + 1]->addr);
 						token_table[i]->obcode += (TA - PC);
 						for (int j = i; token_table[j]->addr != 0; j++) {
-							if (!strcmp(token_table[j]->operator,"LTORG")) {
-								//for (int q = 0; q < strlen(lit); q++) {
-								//	sprintf(token_table[j]->obcode, "%x", lit[q]);
-								//}
-								//저장
-							}
-							else {
-								//저장
-							}
+							//if (!strcmp(token_table[j]->operator,"LTORG")) {
+							//	//for (int q = 0; q < strlen(lit); q++) {
+							//	//	sprintf(token_table[j]->obcode, "%x", lit[q]);
+							//	//}
+							//	//저장
+							//}
+							//else {
+							//	//저장
+							//}
 						}
 					}
 					else {
@@ -766,8 +785,21 @@ static int assem_pass2(void)
 
 			}
 		}
-		for (int i = 0; i < token_line; i++) {
-			myopcode = search_opcode(token_table[i]->operator);
+		else if (!strcmp(token_table[i]->operator,"BYTE")) {
+
+			strcpy(temp, token_table[i]->operand[0]);
+			bw = strtok(temp, "'");
+			bw = strtok(NULL, "'");
+			token_table[i]->obcode = (int)(strtol((bw), NULL, 16));
+		}
+		else if (!strcmp(token_table[i]->operator,"WORD")) {
+			token_table[i]->obcode = 0;
+			printf("%06X", token_table[i]->obcode);
+			//for (int j = 0; token_table[j]->addr == token_table[i]->sec_addr; j++) {
+			//	if (strcmp(token_table[i]->operand[0], sym_table[j].symbol) || (strcmp(token_table[i]->operand[1], sym_table[j].symbol))) {
+			//		token_table[i]->obcode = 0;
+			//	}
+			//}
 		}
 	}
 }
@@ -782,8 +814,7 @@ static int assem_pass2(void)
 *
 * -----------------------------------------------------------------------------------
 */
-//void make_objectcode_output(char *file_name)
-//{
-//	/* add your code here */
-//
-//}
+void make_objectcode_output(char *file_name)
+{
+
+}
