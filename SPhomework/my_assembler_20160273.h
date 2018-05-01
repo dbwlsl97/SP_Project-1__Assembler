@@ -47,10 +47,7 @@ struct token_unit {
 	char *comment;
 	char nixbpe;
 	int obcode;
-<<<<<<< HEAD
-=======
 	
->>>>>>> e2a3f7aa48fb20ed7a83e9c7741afe47563ce860
 };
 
 typedef struct token_unit token;
@@ -75,10 +72,12 @@ static int locctr;
 struct literal_unit{
 	char literal[10];
 	int addr;
+	int sec_addr;
 };
 typedef struct literal_unit literal;
 literal lit_table[MAX_LINES];
-
+static int section;
+char *lit = "";
 //--------------
 
 static char *input_file;
