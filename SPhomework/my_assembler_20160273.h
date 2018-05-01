@@ -5,12 +5,12 @@
 #define MAX_INST 256
 #define MAX_LINES 5000
 #define MAX_OPERAND 3
-#define NN 0b00100000
-#define II 0b00010000
-#define XX 0b00001000
-#define BB 0b00000100
-#define PP 0b00000010
-#define EE 0b00000001
+#define NN 0b00100000 //nixbpe 의 n
+#define II 0b00010000 //nixbpe 의 i
+#define XX 0b00001000 //nixbpe 의 x
+#define BB 0b00000100 //nixbpe 의 b
+#define PP 0b00000010 //nixbpe 의 p
+#define EE 0b00000001 //nixbpe 의 e
 /*
 * instruction 목록 파일로 부터 정보를 받아와서 생성하는 구조체 변수이다.
 * 구조는 각자의 instruction set의 양식에 맞춰 직접 구현하되
@@ -40,28 +40,29 @@ int label_num;
 * nixbpe는 8bit 중 하위 6개의 bit를 이용하여 n,i,x,b,p,e를 표시한다.
 */
 struct token_unit {
-	int sec_addr;
-	int addr;
+	int sec_addr; //섹션 구분 번호 ---------- > 섹션은 0(COPY), 1(RDREC), 2(WRREC) 가 있음
+	int addr; // 현재 라인의 주소할당
+	int obcode; // 바꿔준 기계어 코드를 저장하는 곳 
 	char *label;
 	char *operator;
 	char *operand[MAX_OPERAND];
 	char *comment;
 	char nixbpe;
-	int obcode;
 };
 
 typedef struct token_unit token;
 token *token_table[MAX_LINES];
 static int token_line;
-
+int lit_save; // strtok를 이용해 잘라준 토큰을 저장하는 곳
 int tocount[MAX_LINES] = { NULL, }; // output 함수로 파일만들 때 사용, 각 문자열 하나 당 token 개수들을 저장함 
 char * output[MAX_LINES];			// output 에 출력할 문자열 생성
+char *ob_output[MAX_LINES];
 int myopcode; //search_opcode 함수 사용 시에 사용하는 변수
 /*
 * 심볼을 관리하는 구조체이다.
 * 심볼 테이블은 심볼 이름, 심볼의 위치로 구성된다.
 */
-static int section;
+static int section; //섹션 구분 
 
 struct symbol_unit {
 	char symbol[10];
@@ -76,14 +77,16 @@ struct literal_unit{
 	char literal[10];
 	int addr;
 	int sec_addr;
+	char *lit;
 };
 typedef struct literal_unit literal;
 literal lit_table[MAX_LINES];
 
-char *lit = "";
+int endaddr[3] = { 0, };
 char *bufT = ""; //버퍼 끝
 char *bufH = ""; //버퍼 시작
-
+char *lit = "";
+FILE *object_output;
 //--------------
 
 static char *input_file;
@@ -100,3 +103,4 @@ void make_opcode_output(char *file_name);
 static int assem_pass2(void);
 void make_objectcode_output(char *file_name);
 void make_symtab_output(char *file_name);
+void make_objectcode_Header();
