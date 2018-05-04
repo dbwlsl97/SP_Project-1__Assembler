@@ -49,19 +49,23 @@ struct token_unit {
 	char *comment;
 	char nixbpe;
 };
-
+int * leng_ob;
+int leng_obcd;
 typedef struct token_unit token;
 token *token_table[MAX_LINES];
 static int token_line;
 int lit_save; // strtok를 이용해 잘라준 토큰을 저장하는 곳
+int C_save; //리터럴이 문자일 때 리터럴저장
+int X_save; //리터럴이 숫자일 때 리터럴 저장
 int tocount[MAX_LINES] = { NULL, }; // output 함수로 파일만들 때 사용, 각 문자열 하나 당 token 개수들을 저장함 
 char * output[MAX_LINES];			// output 에 출력할 문자열 생성
 char *ob_output[MAX_LINES];
 int myopcode; //search_opcode 함수 사용 시에 사용하는 변수
-/*
-* 심볼을 관리하는 구조체이다.
-* 심볼 테이블은 심볼 이름, 심볼의 위치로 구성된다.
-*/
+
+			  /*
+			  * 심볼을 관리하는 구조체이다.
+			  * 심볼 테이블은 심볼 이름, 심볼의 위치로 구성된다.
+			  */
 static int section; //섹션 구분 
 
 struct symbol_unit {
@@ -73,7 +77,7 @@ typedef struct symbol_unit symbol;
 symbol sym_table[MAX_LINES];
 static int locctr;
 
-struct literal_unit{
+struct literal_unit {
 	char literal[10];
 	int addr;
 	int sec_addr;
@@ -87,7 +91,12 @@ char *bufT = ""; //버퍼 끝
 char *bufH = ""; //버퍼 시작
 char *lit = "";
 FILE *object_output;
-//--------------
+int leng = 0; // 아웃풋코드에서 라인 길이계산할때
+int opop = 0; // 아웃풋 코드함수에서 OPCODE 계산할 때
+int lit_cleng = 0; //리터럴이 문자일 때의 길이 계산
+int lit_xleng = 0; //리터럴이 숫자일 때의 길이 계산
+int rsub = 0; // RSUB 일때, 기계어 코드 저장
+			  //--------------
 
 static char *input_file;
 static char *output_file;
@@ -103,4 +112,7 @@ void make_opcode_output(char *file_name);
 static int assem_pass2(void);
 void make_objectcode_output(char *file_name);
 void make_symtab_output(char *file_name);
-void make_objectcode_Header();
+void section_HDR(int i);
+void section_T(int i);
+void section_M(int finish_T);
+int cal_leng(int i, int op, int leng);
